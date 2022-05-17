@@ -19,11 +19,12 @@
 #include <nav_msgs/Path.h>
 #include "sensor_msgs/Imu.h"
 #include "geometry_msgs/PoseWithCovarianceStamped.h"
-#include <random>
-#include "qualisys/Subject.h"
 
-std::string file_name_front = "gt_path_front.txt";
-std::string file_name_wifi = "gt_path_wifi.txt";
+#include <random>
+// #include "qualisys/Subject.h"
+
+std::string file_name_front = "data/trial_4_gt_path_front.txt";
+std::string file_name_wifi = "data/trial_4_gt_path_wifi.txt";
 
 int offset_sec = 0;
 int offset_nsec = 0;
@@ -33,11 +34,11 @@ public:
   QualisysListener(ros::NodeHandle& nh): nh_(nh)
   {
     
-    husky_front_sub = nh.subscribe("/qualisys/husky_front", 1000, &QualisysListener::FrontOdomCallback, this);
-    husky_wifi_sub = nh.subscribe("/qualisys/husky_wifi", 1000, &QualisysListener::WifiOdomCallback, this);
+    husky_front_sub = nh.subscribe("/qualisys_synced/husky_front_odom", 1000, &QualisysListener::FrontOdomCallback, this);
+    husky_wifi_sub = nh.subscribe("/qualisys_synced/husky_wifi_odom", 1000, &QualisysListener::WifiOdomCallback, this);
 
-    odom_front_pub = nh_.advertise<nav_msgs::Odometry>("/qualisys_synced/husky_front", 1000);
-    odom_wifi_pub = nh_.advertise<nav_msgs::Odometry>("/qualisys_synced/husky_wifi", 1000);
+    // odom_front_pub = nh_.advertise<nav_msgs::Odometry>("/qualisys_synced/husky_front", 1000);
+    // odom_wifi_pub = nh_.advertise<nav_msgs::Odometry>("/qualisys_synced/husky_wifi", 1000);
     path_front_pub = nh_.advertise<nav_msgs::Path>("/qualisys_synced/gt_path_front", 1000);
     path_wifi_pub = nh_.advertise<nav_msgs::Path>("/qualisys_synced/gt_path_wifi", 1000);
     
@@ -65,21 +66,14 @@ public:
     }
   }
 
-  void FrontOdomCallback(const qualisys::Subject& msg)
+  void FrontOdomCallback(const nav_msgs::Odometry& msg)
   {
     geometry_msgs::PoseStamped pose;
     pose.header = msg.header;
     pose.header.stamp.sec += offset_sec;
     pose.header.stamp.nsec += offset_nsec;
-    pose.pose.position = msg.position;
-    pose.pose.orientation = msg.orientation;
-
-    nav_msgs::Odometry odom_msg;
-    odom_msg.header = msg.header;
-    odom_msg.header.stamp.sec += offset_sec;
-    odom_msg.header.stamp.nsec += offset_nsec;
-    odom_msg.pose.pose.position = msg.position;
-    odom_msg.pose.pose.orientation = msg.orientation;
+    pose.pose.position = msg.pose.pose.position;
+    pose.pose.orientation = msg.pose.pose.orientation;
 
     if (poses_front.size() == 0) {
         initial_pose_front = pose.pose;
@@ -103,26 +97,18 @@ public:
         timestamp = msg.header.stamp.sec + (double)msg.header.stamp.nsec / (double)1000000000;
         savePoseCallback(pose.pose, timestamp, file_name_front);
 
-        odom_front_pub.publish(odom_msg);
         path_front_pub.publish(path_msg);
     }
   }
 
-  void WifiOdomCallback(const qualisys::Subject& msg)
+  void WifiOdomCallback(const nav_msgs::Odometry& msg)
   {
     geometry_msgs::PoseStamped pose;
     pose.header = msg.header;
     pose.header.stamp.sec += offset_sec;
     pose.header.stamp.nsec += offset_nsec;
-    pose.pose.position = msg.position;
-    pose.pose.orientation = msg.orientation;
-
-    nav_msgs::Odometry odom_msg;
-    odom_msg.header = msg.header;
-    odom_msg.header.stamp.sec += offset_sec;
-    odom_msg.header.stamp.nsec += offset_nsec;
-    odom_msg.pose.pose.position = msg.position;
-    odom_msg.pose.pose.orientation = msg.orientation;
+    pose.pose.position = msg.pose.pose.position;
+    pose.pose.orientation = msg.pose.pose.orientation;
 
     if (poses_wifi.size() == 0) {
         initial_pose_wifi = pose.pose;
@@ -145,7 +131,6 @@ public:
         timestamp = msg.header.stamp.sec + (double)msg.header.stamp.nsec / (double)1000000000;
         savePoseCallback(pose.pose, timestamp, file_name_wifi);
 
-        odom_wifi_pub.publish(odom_msg);
         path_wifi_pub.publish(path_msg);
     }
   }
@@ -161,8 +146,6 @@ private:
 
     ros::Publisher path_front_pub;
     ros::Publisher path_wifi_pub;
-    ros::Publisher odom_front_pub;
-    ros::Publisher odom_wifi_pub;
 
     geometry_msgs::Pose initial_pose_front;
     geometry_msgs::Pose initial_pose_wifi;
