@@ -1,5 +1,6 @@
 # Qualisys mat to rosbag
 
+
 ## .mat to .bag
 1. clone the repository into your catkin workspace
 2. edit mat2rosbag.py according to your FILE.mat and FILE.bag setup
