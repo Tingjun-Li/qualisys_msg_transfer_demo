@@ -7,25 +7,24 @@ import rospy
 from nav_msgs.msg import Odometry
 
 
-file = 'data/trial_4_mat2rosbag.mat'
-out_file = "data/trial_4.bag"
-origin_file = "data/mair_trial4.bag"
+file = './data/2022-05-11_MAir/output_data/trial9_M_mat2rosbag.mat'
+origin_file = "./data/2022-05-11_MAir/rosbag/mair_trial9_M.bag"
+out_file = "./data/trial9_M.bag"
+
 add_origin_rosbag = 1
+start_together = 1
+start_time = 0
+
 
 mat_file = loadmat(file)
 
-with rosbag.Bag(out_file,'w') as bag:
 
-    # Include the wrigin package:
-    if (add_origin_rosbag):
-        with rosbag.Bag(origin_file, 'r') as ib:
-            print("Reading File: ", origin_file)
-            for topic, msg, t in ib:
-                bag.write(topic, msg, t)
+with rosbag.Bag(out_file,'w') as bag:
 
     # Add new messages:
     print("Writing New Messages to File: ", out_file)
     for i in range(int(mat_file["frames_front"])): 
+        
         husky_front_msg = Odometry()
         husky_front_msg.header.stamp.secs = int(mat_file["secs_front"][i])
         husky_front_msg.header.stamp.nsecs = int(mat_file["nsecs_front"][i])
@@ -43,21 +42,33 @@ with rosbag.Bag(out_file,'w') as bag:
         bag.write("/qualisys_synced/husky_front_odom",husky_front_msg,timestamp)
 
 
-    for i in range(int(mat_file["frames_wifi"])):
-        husky_wifi_msg = Odometry()
-        husky_wifi_msg.header.stamp.secs = int(mat_file["secs_wifi"][i])
-        husky_wifi_msg.header.stamp.nsecs = int(mat_file["nsecs_wifi"][i])
-        husky_wifi_msg.header.seq = i
-        husky_wifi_msg.header.frame_id = "map"
-        husky_wifi_msg.pose.pose.position.x = float(mat_file["husky_wifi_x"][i])
-        husky_wifi_msg.pose.pose.position.y = float(mat_file["husky_wifi_y"][i])
-        husky_wifi_msg.pose.pose.position.z = float(mat_file["husky_wifi_z"][i])
-        husky_wifi_msg.pose.pose.orientation.x = float(mat_file["husky_wifi_qx"][i])
-        husky_wifi_msg.pose.pose.orientation.y = float(mat_file["husky_wifi_qy"][i])
-        husky_wifi_msg.pose.pose.orientation.z = float(mat_file["husky_wifi_qz"][i])
-        husky_wifi_msg.pose.pose.orientation.w = float(mat_file["husky_wifi_qw"][i])
+    for i in range(int(mat_file["frames_center"])):
+        husky_center_msg = Odometry()
+        husky_center_msg.header.stamp.secs = int(mat_file["secs_center"][i])
+        husky_center_msg.header.stamp.nsecs = int(mat_file["nsecs_center"][i])
+        husky_center_msg.header.seq = i
+        husky_center_msg.header.frame_id = "map"
+        husky_center_msg.pose.pose.position.x = float(mat_file["husky_center_x"][i])
+        husky_center_msg.pose.pose.position.y = float(mat_file["husky_center_y"][i])
+        husky_center_msg.pose.pose.position.z = float(mat_file["husky_center_z"][i])
+        husky_center_msg.pose.pose.orientation.x = float(mat_file["husky_center_qx"][i])
+        husky_center_msg.pose.pose.orientation.y = float(mat_file["husky_center_qy"][i])
+        husky_center_msg.pose.pose.orientation.z = float(mat_file["husky_center_qz"][i])
+        husky_center_msg.pose.pose.orientation.w = float(mat_file["husky_center_qw"][i])
 
-        timestamp = rospy.Time.from_sec(mat_file['timestamps_wifi'][i])
-        bag.write("/qualisys_synced/husky_wifi_odom",husky_wifi_msg,timestamp)
+        timestamp = rospy.Time.from_sec(mat_file['timestamps_center'][i])
+        if i == 0:
+            start_time = timestamp
+        bag.write("/qualisys_synced/husky_center_odom",husky_center_msg,timestamp)
 
+
+    # Include the wrigin package:
+    if (add_origin_rosbag):
+        with rosbag.Bag(origin_file, 'r') as ib:
+            print("Reading File: ", origin_file)
+            for topic, msg, t in ib:
+                if start_together and t >= start_time:
+                    bag.write(topic, msg, t)
+                elif not start_together:
+                    bag.write(topic, msg, t)
 print("Finished!")

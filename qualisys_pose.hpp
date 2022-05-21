@@ -24,7 +24,7 @@
 // #include "qualisys/Subject.h"
 
 std::string file_name_front = "data/trial_4_gt_path_front.txt";
-std::string file_name_wifi = "data/trial_4_gt_path_wifi.txt";
+std::string file_name_center = "data/trial_4_gt_path_center.txt";
 
 int offset_sec = 0;
 int offset_nsec = 0;
@@ -35,15 +35,15 @@ public:
   {
     
     husky_front_sub = nh.subscribe("/qualisys_synced/husky_front_odom", 1000, &QualisysListener::FrontOdomCallback, this);
-    husky_wifi_sub = nh.subscribe("/qualisys_synced/husky_wifi_odom", 1000, &QualisysListener::WifiOdomCallback, this);
+    husky_center_sub = nh.subscribe("/qualisys_synced/husky_center_odom", 1000, &QualisysListener::centerOdomCallback, this);
 
     // odom_front_pub = nh_.advertise<nav_msgs::Odometry>("/qualisys_synced/husky_front", 1000);
-    // odom_wifi_pub = nh_.advertise<nav_msgs::Odometry>("/qualisys_synced/husky_wifi", 1000);
+    // odom_center_pub = nh_.advertise<nav_msgs::Odometry>("/qualisys_synced/husky_center", 1000);
     path_front_pub = nh_.advertise<nav_msgs::Path>("/qualisys_synced/gt_path_front", 1000);
-    path_wifi_pub = nh_.advertise<nav_msgs::Path>("/qualisys_synced/gt_path_wifi", 1000);
+    path_center_pub = nh_.advertise<nav_msgs::Path>("/qualisys_synced/gt_path_center", 1000);
     
     std::ofstream refresh_outfile_front(file_name_front, std::ofstream::out);
-    std::ofstream refresh_outfile_wifi(file_name_wifi, std::ofstream::out);
+    std::ofstream refresh_outfile_center(file_name_center, std::ofstream::out);
 
   }
 
@@ -101,7 +101,7 @@ public:
     }
   }
 
-  void WifiOdomCallback(const nav_msgs::Odometry& msg)
+  void centerOdomCallback(const nav_msgs::Odometry& msg)
   {
     geometry_msgs::PoseStamped pose;
     pose.header = msg.header;
@@ -110,28 +110,28 @@ public:
     pose.pose.position = msg.pose.pose.position;
     pose.pose.orientation = msg.pose.pose.orientation;
 
-    if (poses_wifi.size() == 0) {
-        initial_pose_wifi = pose.pose;
+    if (poses_center.size() == 0) {
+        initial_pose_center = pose.pose;
     } else {
-      pose.pose.position.x -= initial_pose_wifi.position.x;
-      pose.pose.position.y -= initial_pose_wifi.position.y;
-      pose.pose.position.z -= initial_pose_wifi.position.z;
+      pose.pose.position.x -= initial_pose_center.position.x;
+      pose.pose.position.y -= initial_pose_center.position.y;
+      pose.pose.position.z -= initial_pose_center.position.z;
     }
 
-    poses_wifi.push_back(pose);
+    poses_center.push_back(pose);
 
-    if (poses_wifi.size() % 10 == 0) {
+    if (poses_center.size() % 10 == 0) {
         nav_msgs::Path path_msg;
         path_msg.header = msg.header;
         path_msg.header.frame_id = "/odom";
-        std::cout << "Positions: " << poses_wifi.back().pose.position.x << ", " << poses_wifi.back().pose.position.x << ", " << poses_wifi.back().pose.position.z << std::endl;
-        path_msg.poses = poses_wifi;
+        std::cout << "Positions: " << poses_center.back().pose.position.x << ", " << poses_center.back().pose.position.x << ", " << poses_center.back().pose.position.z << std::endl;
+        path_msg.poses = poses_center;
         
         long double timestamp;
         timestamp = msg.header.stamp.sec + (double)msg.header.stamp.nsec / (double)1000000000;
-        savePoseCallback(pose.pose, timestamp, file_name_wifi);
+        savePoseCallback(pose.pose, timestamp, file_name_center);
 
-        path_wifi_pub.publish(path_msg);
+        path_center_pub.publish(path_msg);
     }
   }
 
@@ -139,16 +139,16 @@ public:
 private:
     ros::NodeHandle& nh_;
     std::vector<geometry_msgs::PoseStamped> poses_front;
-    std::vector<geometry_msgs::PoseStamped> poses_wifi;
+    std::vector<geometry_msgs::PoseStamped> poses_center;
 
     ros::Subscriber husky_front_sub;
-    ros::Subscriber husky_wifi_sub;
+    ros::Subscriber husky_center_sub;
 
     ros::Publisher path_front_pub;
-    ros::Publisher path_wifi_pub;
+    ros::Publisher path_center_pub;
 
     geometry_msgs::Pose initial_pose_front;
-    geometry_msgs::Pose initial_pose_wifi;
+    geometry_msgs::Pose initial_pose_center;
 
 };
 
